@@ -4,13 +4,8 @@ import type { Task } from '../types/task';
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const todayDate = getLocalDateKey(new Date());
-
-  const pendingTasks = tasks.filter(
-    (task) => !task.completed && task.scheduledDate !== todayDate
-  );
-  const todayTasks = tasks.filter(
-    (task) => !task.completed && task.scheduledDate === todayDate
-  );
+  const pendingTasks = tasks.filter((task) => task.scheduledDate !== todayDate);
+  const todayTasks = tasks.filter((task) => task.scheduledDate === todayDate);
 
   function addTask(title: string, duration: string) {
     const trimmedTitle = title.trim();
@@ -21,27 +16,19 @@ export function useTasks() {
 
     setTasks((currentTasks) => [
       ...currentTasks,
-      { id: Date.now(), title: trimmedTitle, durationMinutes, completed: false },
+      { id: Date.now(), title: trimmedTitle, durationMinutes },
     ]);
   }
 
   function moveTaskToToday(taskId: number) {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
-        task.id === taskId ? { ...task, scheduledDate: todayDate } : task
-      )
+        task.id === taskId ? { ...task, scheduledDate: todayDate } : task,
+      ),
     );
   }
 
-  function toggleTaskCompleted(taskId: number) {
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
-    );
-  }
-
-  return { pendingTasks, todayTasks, addTask, moveTaskToToday, toggleTaskCompleted };
+  return { pendingTasks, todayTasks, addTask, moveTaskToToday };
 }
 
 function getLocalDateKey(date: Date): string {

@@ -18,7 +18,7 @@ import { useAvailabilityProfile } from './src/hooks/useAvailabilityProfile';
 import { useTasks } from './src/hooks/useTasks';
 
 export default function App() {
-  const { pendingTasks, todayTasks, addTask, moveTaskToToday, toggleTaskCompleted } = useTasks();
+  const { pendingTasks, todayTasks, addTask, moveTaskToToday } = useTasks();
   const { profile, isLoading, loadError, saveProfile } = useAvailabilityProfile();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showSavedMessage, setShowSavedMessage] = useState(false);
@@ -127,11 +127,7 @@ export default function App() {
         {activeScreen === 'pending' ? (
           <>
             <TaskComposer onAddTask={addTask} />
-            <TaskList
-              tasks={pendingTasks}
-              onMoveToToday={moveTaskToToday}
-              onToggleCompleted={toggleTaskCompleted}
-            />
+            <TaskList onMoveToToday={moveTaskToToday} tasks={pendingTasks} />
           </>
         ) : (
           <TodayAgenda tasks={todayTasks} />
