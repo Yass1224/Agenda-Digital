@@ -23,7 +23,9 @@ export function TaskItem({
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: !!task.completed }}
-          accessibilityLabel={`Marcar ${task.title} como completada`}
+          accessibilityLabel={`Marcar ${task.title} como ${
+            task.completed ? 'pendiente' : 'completada'
+          }`}
           onPress={() => onToggleCompleted?.(task.id)}
           style={({ pressed }) => [
             styles.checkbox,

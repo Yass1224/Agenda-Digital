@@ -21,10 +21,12 @@ export default function App() {
   const {
     pendingTasks,
     todayTasks,
+    completedTasks,
     addTask,
     moveTaskToToday,
     toggleTaskCompleted,
     organizeToday,
+    extendTodayTask,
   } = useTasks();
   const { profile, isLoading, loadError, saveProfile } = useAvailabilityProfile();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -136,6 +138,7 @@ export default function App() {
             <TaskComposer onAddTask={addTask} />
             <TaskList
               tasks={pendingTasks}
+              completedTasks={completedTasks}
               onMoveToToday={moveTaskToToday}
               onToggleCompleted={toggleTaskCompleted}
             />
@@ -143,6 +146,10 @@ export default function App() {
         ) : (
           <TodayAgenda
             onOrganize={() => organizeToday(profile)}
+            onExtendTask={(taskId, additionalMinutes) =>
+              extendTodayTask(taskId, additionalMinutes, profile)
+            }
+            onToggleCompleted={toggleTaskCompleted}
             profile={profile}
             tasks={todayTasks}
           />
