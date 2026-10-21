@@ -4,9 +4,10 @@ import { TaskItem } from './TaskItem';
 
 type TaskListProps = {
   tasks: Task[];
+  onMoveToToday: (taskId: number) => void;
 };
 
-export function TaskList({ tasks }: TaskListProps) {
+export function TaskList({ tasks, onMoveToToday }: TaskListProps) {
   return (
     <>
       <View style={styles.listHeading}>
@@ -28,7 +29,9 @@ export function TaskList({ tasks }: TaskListProps) {
             </Text>
           </View>
         }
-        renderItem={({ item, index }) => <TaskItem index={index} task={item} />}
+        renderItem={({ item, index }) => (
+          <TaskItem index={index} onMoveToToday={onMoveToToday} task={item} />
+        )}
       />
     </>
   );
