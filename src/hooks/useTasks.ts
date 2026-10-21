@@ -52,7 +52,14 @@ export function useTasks() {
     return result.unscheduledCount;
   }
 
-  return { pendingTasks, todayTasks, addTask, moveTaskToToday, organizeToday };
+  return {
+    pendingTasks,
+    todayTasks,
+    addTask,
+    moveTaskToToday,
+    toggleTaskCompleted,
+    organizeToday,
+  };
 }
 
 function getLocalDateKey(date: Date): string {

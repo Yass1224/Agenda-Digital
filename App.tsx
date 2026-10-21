@@ -18,7 +18,14 @@ import { useAvailabilityProfile } from './src/hooks/useAvailabilityProfile';
 import { useTasks } from './src/hooks/useTasks';
 
 export default function App() {
-  const { pendingTasks, todayTasks, addTask, moveTaskToToday, organizeToday } = useTasks();
+  const {
+    pendingTasks,
+    todayTasks,
+    addTask,
+    moveTaskToToday,
+    toggleTaskCompleted,
+    organizeToday,
+  } = useTasks();
   const { profile, isLoading, loadError, saveProfile } = useAvailabilityProfile();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showSavedMessage, setShowSavedMessage] = useState(false);
