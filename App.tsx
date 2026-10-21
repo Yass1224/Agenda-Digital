@@ -13,14 +13,16 @@ import {
 import { AvailabilityProfileForm } from './src/components/profile/AvailabilityProfileForm';
 import { TaskComposer } from './src/components/tasks/TaskComposer';
 import { TaskList } from './src/components/tasks/TaskList';
+import { TodayAgenda } from './src/components/tasks/TodayAgenda';
 import { useAvailabilityProfile } from './src/hooks/useAvailabilityProfile';
 import { useTasks } from './src/hooks/useTasks';
 
 export default function App() {
-  const { tasks, addTask } = useTasks();
+  const { pendingTasks, todayTasks, addTask, moveTaskToToday } = useTasks();
   const { profile, isLoading, loadError, saveProfile } = useAvailabilityProfile();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showSavedMessage, setShowSavedMessage] = useState(false);
+  const [activeScreen, setActiveScreen] = useState<'pending' | 'today'>('pending');
 
   if (isLoading) {
     return (
@@ -62,7 +64,9 @@ export default function App() {
         <View style={styles.header}>
           <View>
             <Text style={styles.eyebrow}>AGENDA DIGITAL</Text>
-            <Text style={styles.heading}>Pendientes</Text>
+            <Text style={styles.heading}>
+              {activeScreen === 'pending' ? 'Pendientes' : 'Agenda de hoy'}
+            </Text>
           </View>
           <View style={styles.headerActions}>
             <Pressable
@@ -77,7 +81,9 @@ export default function App() {
               <Text style={styles.editButtonText}>Horario</Text>
             </Pressable>
             <View style={styles.countBadge}>
-              <Text style={styles.count}>{tasks.length}</Text>
+              <Text style={styles.count}>
+                {activeScreen === 'pending' ? pendingTasks.length : todayTasks.length}
+              </Text>
             </View>
           </View>
         </View>
@@ -86,8 +92,46 @@ export default function App() {
             Horario fijo guardado correctamente.
           </Text>
         ) : null}
-        <TaskComposer onAddTask={addTask} />
-        <TaskList tasks={tasks} />
+        <View style={styles.screenTabs}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: activeScreen === 'pending' }}
+            onPress={() => setActiveScreen('pending')}
+            style={[styles.screenTab, activeScreen === 'pending' && styles.screenTabActive]}
+          >
+            <Text
+              style={[
+                styles.screenTabText,
+                activeScreen === 'pending' && styles.screenTabTextActive,
+              ]}
+            >
+              Pendientes
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: activeScreen === 'today' }}
+            onPress={() => setActiveScreen('today')}
+            style={[styles.screenTab, activeScreen === 'today' && styles.screenTabActive]}
+          >
+            <Text
+              style={[
+                styles.screenTabText,
+                activeScreen === 'today' && styles.screenTabTextActive,
+              ]}
+            >
+              Agenda de hoy
+            </Text>
+          </Pressable>
+        </View>
+        {activeScreen === 'pending' ? (
+          <>
+            <TaskComposer onAddTask={addTask} />
+            <TaskList onMoveToToday={moveTaskToToday} tasks={pendingTasks} />
+          </>
+        ) : (
+          <TodayAgenda tasks={todayTasks} />
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -142,6 +186,33 @@ const styles = StyleSheet.create({
   headerActions: {
     alignItems: 'center',
     flexDirection: 'row',
+  },
+  screenTabs: {
+    backgroundColor: '#E9E8E1',
+    borderRadius: 10,
+    flexDirection: 'row',
+    marginBottom: 8,
+    padding: 4,
+  },
+  screenTab: {
+    alignItems: 'center',
+    borderRadius: 7,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 40,
+    paddingHorizontal: 8,
+  },
+  screenTabActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  screenTabText: {
+    color: '#68756A',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  screenTabTextActive: {
+    color: '#35563F',
+    fontWeight: '700',
   },
   editButton: {
     borderColor: '#CDD8CC',

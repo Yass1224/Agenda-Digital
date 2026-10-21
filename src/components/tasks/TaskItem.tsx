@@ -1,31 +1,51 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Task } from '../../types/task';
 
 type TaskItemProps = {
   index: number;
   task: Task;
+  onMoveToToday?: (taskId: number) => void;
 };
 
-export function TaskItem({ index, task }: TaskItemProps) {
+export function TaskItem({ index, task, onMoveToToday }: TaskItemProps) {
   return (
-    <View style={styles.taskRow}>
-      <Text style={styles.taskIndex}>{String(index + 1).padStart(2, '0')}</Text>
-      <View style={styles.taskMarker} />
-      <Text style={styles.taskTitle}>{task.title}</Text>
-      <Text style={styles.taskDuration}>{task.durationMinutes} min</Text>
+    <View style={styles.taskCard}>
+      <View style={styles.taskRow}>
+        <Text style={styles.taskIndex}>{String(index + 1).padStart(2, '0')}</Text>
+        <View style={styles.taskMarker} />
+        <Text style={styles.taskTitle}>{task.title}</Text>
+        <Text style={styles.taskDuration}>{task.durationMinutes} min</Text>
+      </View>
+      {onMoveToToday ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Mover ${task.title} a hoy`}
+          onPress={() => onMoveToToday(task.id)}
+          style={({ pressed }) => [
+            styles.moveButton,
+            pressed && styles.moveButtonPressed,
+          ]}
+        >
+          <Text style={styles.moveButtonText}>Mover a hoy</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  taskCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E9E8E1',
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+  },
   taskRow: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderBottomColor: '#E9E8E1',
-    borderBottomWidth: 1,
     flexDirection: 'row',
     minHeight: 64,
-    paddingHorizontal: 14,
   },
   taskIndex: {
     color: '#92968C',
@@ -52,5 +72,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  moveButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8EDE4',
+    borderRadius: 7,
+    justifyContent: 'center',
+    marginBottom: 12,
+    minHeight: 38,
+    paddingHorizontal: 12,
+  },
+  moveButtonPressed: {
+    backgroundColor: '#DCE9DB',
+  },
+  moveButtonText: {
+    color: '#35563F',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
