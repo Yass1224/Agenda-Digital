@@ -36,6 +36,16 @@ export function useTasks() {
     );
   }
 
+  function returnTaskToPending(taskId: number) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId
+          ? { ...task, scheduledDate: undefined, startTime: undefined, endTime: undefined }
+          : task
+      )
+    );
+  }
+
   function toggleTaskCompleted(taskId: number) {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
@@ -106,6 +116,7 @@ export function useTasks() {
     completedTasks,
     addTask,
     moveTaskToToday,
+    returnTaskToPending,
     toggleTaskCompleted,
     organizeToday,
     extendTodayTask,

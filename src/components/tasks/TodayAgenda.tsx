@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
+  Animated,
   Modal,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +27,7 @@ type TodayAgendaProps = {
   profile: AvailabilityProfile;
   onOrganize: () => number;
   onExtendTask: (taskId: number, additionalMinutes: number) => number;
+  onReturnToPending: (taskId: number) => void;
   onToggleCompleted: (taskId: number) => void;
 };
 
@@ -33,6 +36,7 @@ export function TodayAgenda({
   profile,
   onOrganize,
   onExtendTask,
+  onReturnToPending,
   onToggleCompleted,
 }: TodayAgendaProps) {
   const [agendaMessage, setAgendaMessage] = useState('');
@@ -281,32 +285,104 @@ export function TodayAgenda({
           </View>
         ) : (
           tasks.map((task, index) => (
-            <View key={task.id} style={styles.taskCard}>
-              <Text style={styles.taskIndex}>{String(index + 1).padStart(2, '0')}</Text>
-              <Pressable
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: false }}
-                accessibilityLabel={`Marcar ${task.title} como completada`}
-                onPress={() => onToggleCompleted(task.id)}
-                style={({ pressed }) => [
-                  styles.checkbox,
-                  pressed && styles.checkboxPressed,
-                ]}
-              />
-              <View style={styles.taskDetails}>
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskTime}>
-                  {task.startTime && task.endTime
-                    ? `${task.startTime}–${task.endTime}`
-                    : 'Sin espacio disponible'}
-                  {'  ·  '}
-                  {task.durationMinutes} min
-                </Text>
-              </View>
-            </View>
+            <TodayTaskCard
+              index={index}
+              key={task.id}
+              onReturnToPending={onReturnToPending}
+              onToggleCompleted={onToggleCompleted}
+              task={task}
+            />
           ))
         )}
       </ScrollView>
+    </View>
+  );
+}
+
+type TodayTaskCardProps = {
+  index: number;
+  task: Task;
+  onReturnToPending: (taskId: number) => void;
+  onToggleCompleted: (taskId: number) => void;
+};
+
+function TodayTaskCard({
+  index,
+  task,
+  onReturnToPending,
+  onToggleCompleted,
+}: TodayTaskCardProps) {
+  const [translateX] = useState(() => new Animated.Value(0));
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          gestureState.dx < -12 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.2,
+        onPanResponderMove: (_, gestureState) => {
+          translateX.setValue(Math.min(gestureState.dx, 0));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dx < -80) {
+            onReturnToPending(task.id);
+          }
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        },
+      }),
+    [onReturnToPending, task.id, translateX],
+  );
+
+  return (
+    <View style={styles.taskSwipeContainer}>
+      <View style={styles.swipeAction}>
+        <Text style={styles.swipeActionText}>Hacer otro día</Text>
+      </View>
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={[styles.taskCard, { transform: [{ translateX }] }]}
+      >
+        <Text style={styles.taskIndex}>{String(index + 1).padStart(2, '0')}</Text>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: false }}
+          accessibilityLabel={`Marcar ${task.title} como completada`}
+          onPress={() => onToggleCompleted(task.id)}
+          style={({ pressed }) => [
+            styles.checkbox,
+            pressed && styles.checkboxPressed,
+          ]}
+        />
+        <View style={styles.taskDetails}>
+          <Text style={styles.taskTitle}>{task.title}</Text>
+          <Text style={styles.taskTime}>
+            {task.startTime && task.endTime
+              ? `${task.startTime}–${task.endTime}`
+              : 'Sin espacio disponible'}
+            {'  ·  '}
+            {task.durationMinutes} min
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Hacer otro día la tarea ${task.title}`}
+            onPress={() => onReturnToPending(task.id)}
+            style={({ pressed }) => [
+              styles.returnTaskButton,
+              pressed && styles.returnTaskButtonPressed,
+            ]}
+          >
+            <Text style={styles.returnTaskButtonText}>Hacer otro día</Text>
+          </Pressable>
+        </View>
+      </Animated.View>
     </View>
   );
 }
@@ -582,9 +658,31 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     flexDirection: 'row',
-    marginBottom: 8,
     minHeight: 62,
     paddingHorizontal: 14,
+    width: '100%',
+  },
+  taskSwipeContainer: {
+    borderRadius: 10,
+    marginBottom: 8,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  swipeAction: {
+    alignItems: 'flex-end',
+    backgroundColor: '#DCE9DB',
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 150,
+  },
+  swipeActionText: {
+    color: '#35563F',
+    fontSize: 12,
+    fontWeight: '700',
   },
   taskIndex: {
     color: '#92968C',
@@ -606,6 +704,22 @@ const styles = StyleSheet.create({
   taskDetails: {
     flex: 1,
     paddingVertical: 10,
+  },
+  returnTaskButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8EDE4',
+    borderRadius: 6,
+    marginTop: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+  },
+  returnTaskButtonPressed: {
+    backgroundColor: '#DCE9DB',
+  },
+  returnTaskButtonText: {
+    color: '#35563F',
+    fontSize: 11,
+    fontWeight: '700',
   },
   taskTitle: {
     color: '#293129',

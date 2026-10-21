@@ -24,6 +24,7 @@ export default function App() {
     completedTasks,
     addTask,
     moveTaskToToday,
+    returnTaskToPending,
     toggleTaskCompleted,
     organizeToday,
     extendTodayTask,
@@ -149,6 +150,7 @@ export default function App() {
             onExtendTask={(taskId, additionalMinutes) =>
               extendTodayTask(taskId, additionalMinutes, profile)
             }
+            onReturnToPending={returnTaskToPending}
             onToggleCompleted={toggleTaskCompleted}
             profile={profile}
             tasks={todayTasks}
