@@ -127,7 +127,11 @@ export default function App() {
         {activeScreen === 'pending' ? (
           <>
             <TaskComposer onAddTask={addTask} />
-            <TaskList onMoveToToday={moveTaskToToday} tasks={pendingTasks} />
+            <TaskList
+              tasks={pendingTasks}
+              onMoveToToday={moveTaskToToday}
+              onToggleCompleted={toggleTaskCompleted}
+            />
           </>
         ) : (
           <TodayAgenda
