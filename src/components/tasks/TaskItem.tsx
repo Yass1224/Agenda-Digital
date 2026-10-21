@@ -12,8 +12,32 @@ export function TaskItem({ index, task, onMoveToToday }: TaskItemProps) {
     <View style={styles.taskCard}>
       <View style={styles.taskRow}>
         <Text style={styles.taskIndex}>{String(index + 1).padStart(2, '0')}</Text>
-        <View style={styles.taskMarker} />
-        <Text style={styles.taskTitle}>{task.title}</Text>
+        
+        {/* Casilla de verificación interactiva */}
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: !!task.completed }}
+          accessibilityLabel={`Marcar ${task.title} como ${
+            task.completed ? 'pendiente' : 'completada'
+          }`}
+          onPress={() => onToggleCompleted?.(task.id)}
+          style={({ pressed }) => [
+            styles.checkbox,
+            task.completed && styles.checkboxCompleted,
+            pressed && styles.checkboxPressed,
+          ]}
+        >
+          {task.completed ? <Text style={styles.checkmark}>✓</Text> : null}
+        </Pressable>
+
+        <Text
+          style={[
+            styles.taskTitle,
+            task.completed && styles.taskTitleCompleted,
+          ]}
+        >
+          {task.title}
+        </Text>
         <Text style={styles.taskDuration}>{task.durationMinutes} min</Text>
       </View>
       {onMoveToToday ? (

@@ -44,6 +44,22 @@ export function organizeTasks(
   tasks: Task[],
   profile: AvailabilityProfile,
 ): { tasks: Task[]; unscheduledCount: number } {
+  return scheduleTasksFrom(tasks, profile, 0);
+}
+
+export function reorganizeTasks(
+  tasks: Task[],
+  profile: AvailabilityProfile,
+  startMinute: number,
+): { tasks: Task[]; unscheduledCount: number } {
+  return scheduleTasksFrom(tasks, profile, startMinute);
+}
+
+function scheduleTasksFrom(
+  tasks: Task[],
+  profile: AvailabilityProfile,
+  startMinute: number,
+): { tasks: Task[]; unscheduledCount: number } {
   const availableRanges = mergeRanges(
     getFixedScheduleBlocks(profile).map(({ startMinute, endMinute }) => ({
       startMinute,
@@ -51,23 +67,32 @@ export function organizeTasks(
     })),
   );
   const freeRanges: MinuteRange[] = [];
-  let nextStartMinute = 0;
+  let nextStartMinute = Math.min(Math.max(startMinute, 0), 24 * 60);
 
   for (const range of availableRanges) {
-    if (range.startMinute > nextStartMinute) {
-      freeRanges.push({ startMinute: nextStartMinute, endMinute: range.startMinute });
+    const rangeStart = Math.max(range.startMinute, nextStartMinute);
+    if (range.endMinute > nextStartMinute && rangeStart > nextStartMinute) {
+      freeRanges.push({ startMinute: nextStartMinute, endMinute: rangeStart });
     }
-    nextStartMinute = Math.max(nextStartMinute, range.endMinute);
+    if (range.endMinute > nextStartMinute) {
+      nextStartMinute = range.endMinute;
+    }
   }
   if (nextStartMinute < 24 * 60) {
     freeRanges.push({ startMinute: nextStartMinute, endMinute: 24 * 60 });
   }
 
   let unscheduledCount = 0;
+  let currentRangeIndex = 0;
   const scheduledTasks = tasks.map((task) => {
-    const availableRange = freeRanges.find(
-      (range) => range.endMinute - range.startMinute >= task.durationMinutes,
-    );
+    while (
+      currentRangeIndex < freeRanges.length &&
+      freeRanges[currentRangeIndex].endMinute - freeRanges[currentRangeIndex].startMinute <
+        task.durationMinutes
+    ) {
+      currentRangeIndex += 1;
+    }
+    const availableRange = freeRanges[currentRangeIndex];
     if (!availableRange) {
       unscheduledCount += 1;
       return { ...task, startTime: undefined, endTime: undefined };

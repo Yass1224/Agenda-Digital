@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import type { AvailabilityProfile } from '../../types/availabilityProfile';
@@ -22,10 +24,22 @@ type TodayAgendaProps = {
   tasks: Task[];
   profile: AvailabilityProfile;
   onOrganize: () => number;
+  onExtendTask: (taskId: number, additionalMinutes: number) => number;
+  onToggleCompleted: (taskId: number) => void;
 };
 
-export function TodayAgenda({ tasks, profile, onOrganize }: TodayAgendaProps) {
-  const [organizeMessage, setOrganizeMessage] = useState('');
+export function TodayAgenda({
+  tasks,
+  profile,
+  onOrganize,
+  onExtendTask,
+  onToggleCompleted,
+}: TodayAgendaProps) {
+  const [agendaMessage, setAgendaMessage] = useState('');
+  const [isExtensionPanelVisible, setIsExtensionPanelVisible] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [additionalMinutes, setAdditionalMinutes] = useState('30');
+  const [extensionError, setExtensionError] = useState('');
   const todayLabel = new Intl.DateTimeFormat('es-MX', {
     weekday: 'long',
     day: 'numeric',
@@ -48,12 +62,34 @@ export function TodayAgenda({ tasks, profile, onOrganize }: TodayAgendaProps) {
   function handleOrganize() {
     const unscheduledCount = onOrganize();
     if (unscheduledCount === 0) {
-      setOrganizeMessage('Tus tareas se acomodaron en los espacios disponibles.');
+      setAgendaMessage('Tus tareas se acomodaron en los espacios disponibles.');
     } else {
-      setOrganizeMessage(
+      setAgendaMessage(
         `${unscheduledCount} ${unscheduledCount === 1 ? 'tarea quedó' : 'tareas quedaron'} sin espacio disponible.`,
       );
     }
+  }
+
+  function openExtensionPanel() {
+    setSelectedTaskId(tasks[0]?.id ?? null);
+    setAdditionalMinutes('30');
+    setExtensionError('');
+    setIsExtensionPanelVisible(true);
+  }
+
+  function handleExtendTask() {
+    const parsedAdditionalMinutes = Number.parseInt(additionalMinutes, 10);
+    if (!selectedTaskId || !Number.isInteger(parsedAdditionalMinutes) || parsedAdditionalMinutes <= 0) {
+      setExtensionError('Elige una tarea e indica una cantidad de minutos mayor que cero.');
+      return;
+    }
+
+    const unscheduledCount = onExtendTask(selectedTaskId, parsedAdditionalMinutes);
+    const unscheduledMessage = unscheduledCount > 0
+      ? ` ${unscheduledCount} ${unscheduledCount === 1 ? 'tarea quedó' : 'tareas quedaron'} sin espacio disponible.`
+      : '';
+    setAgendaMessage(`Se amplió el tiempo de la tarea y se actualizaron los horarios.${unscheduledMessage}`);
+    setIsExtensionPanelVisible(false);
   }
 
   return (
@@ -79,11 +115,105 @@ export function TodayAgenda({ tasks, profile, onOrganize }: TodayAgendaProps) {
       >
         <Text style={styles.organizeButtonText}>Organizar día</Text>
       </Pressable>
-      {organizeMessage ? (
+      <Pressable
+        accessibilityRole="button"
+        disabled={tasks.length === 0}
+        onPress={openExtensionPanel}
+        style={({ pressed }) => [
+          styles.reorganizeButton,
+          tasks.length === 0 && styles.organizeButtonDisabled,
+          pressed && tasks.length > 0 && styles.reorganizeButtonPressed,
+        ]}
+      >
+        <Text style={styles.reorganizeButtonText}>Reajustar agenda</Text>
+      </Pressable>
+      {agendaMessage ? (
         <Text accessibilityLiveRegion="polite" style={styles.organizeMessage}>
-          {organizeMessage}
+          {agendaMessage}
         </Text>
       ) : null}
+      <Modal
+        animationType="slide"
+        onRequestClose={() => setIsExtensionPanelVisible(false)}
+        transparent
+        visible={isExtensionPanelVisible}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.extensionPanel}>
+            <Text style={styles.panelTitle}>Ampliar tiempo de una tarea</Text>
+            <Text style={styles.panelDescription}>
+              Elige la tarea que necesita más tiempo. Las siguientes se recorrerán para actualizar
+              sus horarios.
+            </Text>
+            <ScrollView
+              style={styles.taskOptions}
+              showsVerticalScrollIndicator={false}
+            >
+              {tasks.map((task) => {
+                const isSelected = selectedTaskId === task.id;
+                return (
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
+                    key={task.id}
+                    onPress={() => {
+                      setSelectedTaskId(task.id);
+                      setExtensionError('');
+                    }}
+                    style={[
+                      styles.taskOption,
+                      isSelected && styles.taskOptionSelected,
+                    ]}
+                  >
+                    <View style={styles.taskOptionText}>
+                      <Text style={styles.taskOptionTitle}>{task.title}</Text>
+                      <Text style={styles.taskOptionCaption}>
+                        {task.startTime && task.endTime
+                          ? `${task.startTime}–${task.endTime}`
+                          : 'Sin horario asignado'}
+                        {' · '}{task.durationMinutes} min actuales
+                      </Text>
+                    </View>
+                    <View style={[styles.radio, isSelected && styles.radioSelected]} />
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Text style={styles.inputLabel}>Minutos adicionales</Text>
+            <TextInput
+              accessibilityLabel="Minutos adicionales para la tarea"
+              keyboardType="number-pad"
+              onChangeText={(value) => {
+                setAdditionalMinutes(value.replace(/[^\d]/g, ''));
+                setExtensionError('');
+              }}
+              style={styles.minutesInput}
+              value={additionalMinutes}
+            />
+            {extensionError ? (
+              <Text accessibilityRole="alert" style={styles.extensionError}>
+                {extensionError}
+              </Text>
+            ) : null}
+            <View style={styles.panelActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsExtensionPanelVisible(false)}
+                style={styles.cancelPanelButton}
+              >
+                <Text style={styles.cancelPanelText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleExtendTask}
+                style={styles.confirmExtensionButton}
+              >
+                <Text style={styles.confirmExtensionText}>Ampliar tiempo</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.timelineTitle}>Horario de 24 horas</Text>
@@ -153,6 +283,16 @@ export function TodayAgenda({ tasks, profile, onOrganize }: TodayAgendaProps) {
           tasks.map((task, index) => (
             <View key={task.id} style={styles.taskCard}>
               <Text style={styles.taskIndex}>{String(index + 1).padStart(2, '0')}</Text>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: false }}
+                accessibilityLabel={`Marcar ${task.title} como completada`}
+                onPress={() => onToggleCompleted(task.id)}
+                style={({ pressed }) => [
+                  styles.checkbox,
+                  pressed && styles.checkboxPressed,
+                ]}
+              />
               <View style={styles.taskDetails}>
                 <Text style={styles.taskTitle}>{task.title}</Text>
                 <Text style={styles.taskTime}>
@@ -214,10 +354,150 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  reorganizeButton: {
+    alignItems: 'center',
+    backgroundColor: '#E8EDE4',
+    borderColor: '#CDD8CC',
+    borderRadius: 9,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginBottom: 10,
+    minHeight: 44,
+  },
+  reorganizeButtonPressed: {
+    backgroundColor: '#DCE9DB',
+  },
+  reorganizeButtonText: {
+    color: '#35563F',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   organizeMessage: {
     color: '#35563F',
     fontSize: 12,
     marginBottom: 8,
+  },
+  modalBackdrop: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(24, 32, 25, 0.45)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  extensionPanel: {
+    backgroundColor: '#F6F5EF',
+    borderRadius: 16,
+    maxHeight: '85%',
+    padding: 20,
+    width: '100%',
+  },
+  panelTitle: {
+    color: '#202820',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  panelDescription: {
+    color: '#70766D',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8,
+  },
+  taskOptions: {
+    marginTop: 14,
+    maxHeight: 240,
+  },
+  taskOption: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E0E0D7',
+    borderRadius: 9,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginBottom: 8,
+    minHeight: 60,
+    paddingHorizontal: 12,
+  },
+  taskOptionSelected: {
+    backgroundColor: '#E8EDE4',
+    borderColor: '#507056',
+  },
+  taskOptionText: {
+    flex: 1,
+    paddingVertical: 9,
+  },
+  taskOptionTitle: {
+    color: '#293129',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  taskOptionCaption: {
+    color: '#68756A',
+    fontSize: 11,
+    marginTop: 3,
+  },
+  radio: {
+    borderColor: '#92968C',
+    borderRadius: 10,
+    borderWidth: 2,
+    height: 20,
+    marginLeft: 10,
+    width: 20,
+  },
+  radioSelected: {
+    backgroundColor: '#507056',
+    borderColor: '#507056',
+  },
+  inputLabel: {
+    color: '#293129',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  minutesInput: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E0E0D7',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#202820',
+    fontSize: 16,
+    marginTop: 7,
+    minHeight: 46,
+    paddingHorizontal: 12,
+  },
+  extensionError: {
+    color: '#AC3F2D',
+    fontSize: 12,
+    marginTop: 8,
+  },
+  panelActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 18,
+  },
+  cancelPanelButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  cancelPanelText: {
+    color: '#4E5E50',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  confirmExtensionButton: {
+    alignItems: 'center',
+    backgroundColor: '#D96543',
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 14,
+  },
+  confirmExtensionText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   scrollContent: {
     paddingBottom: 28,
@@ -311,6 +591,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontVariant: ['tabular-nums'],
     width: 34,
+  },
+  checkbox: {
+    borderColor: '#D96543',
+    borderRadius: 6,
+    borderWidth: 2,
+    height: 20,
+    marginRight: 12,
+    width: 20,
+  },
+  checkboxPressed: {
+    opacity: 0.7,
   },
   taskDetails: {
     flex: 1,

@@ -4,10 +4,17 @@ import { TaskItem } from './TaskItem';
 
 type TaskListProps = {
   tasks: Task[];
+  completedTasks: Task[];
   onMoveToToday: (taskId: number) => void;
+  onToggleCompleted: (taskId: number) => void;
 };
 
-export function TaskList({ tasks, onMoveToToday }: TaskListProps) {
+export function TaskList({
+  tasks,
+  completedTasks,
+  onMoveToToday,
+  onToggleCompleted,
+}: TaskListProps) {
   return (
     <>
       <View style={styles.listHeading}>
@@ -27,6 +34,30 @@ export function TaskList({ tasks, onMoveToToday }: TaskListProps) {
             <Text style={styles.emptyMessage}>
               Escribe una tarea arriba y guárdala para añadirla a tus pendientes.
             </Text>
+          </View>
+        }
+        ListFooterComponent={
+          <View style={styles.completedSection}>
+            <View style={styles.completedHeading}>
+              <Text style={styles.sectionTitle}>Tareas completadas</Text>
+              <Text style={styles.sectionCaption}>
+                {completedTasks.length} {completedTasks.length === 1 ? 'TAREA' : 'TAREAS'}
+              </Text>
+            </View>
+            {completedTasks.length === 0 ? (
+              <Text style={styles.completedEmptyMessage}>
+                Las tareas que marques como completadas aparecerán aquí.
+              </Text>
+            ) : (
+              completedTasks.map((task, index) => (
+                <TaskItem
+                  index={index}
+                  key={task.id}
+                  onToggleCompleted={onToggleCompleted}
+                  task={task}
+                />
+              ))
+            )}
           </View>
         }
         renderItem={({ item, index }) => (
@@ -58,6 +89,23 @@ const styles = StyleSheet.create({
   },
   taskList: {
     paddingBottom: 24,
+  },
+  completedSection: {
+    paddingBottom: 24,
+  },
+  completedHeading: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    marginTop: 20,
+  },
+  completedEmptyMessage: {
+    color: '#777B72',
+    fontSize: 13,
+    lineHeight: 20,
+    paddingBottom: 16,
+    paddingTop: 8,
   },
   emptyList: {
     flexGrow: 1,
