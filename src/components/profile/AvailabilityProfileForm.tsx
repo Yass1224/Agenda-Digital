@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import type {
-  AvailabilityBlockKey,
+  AvailabilityBlock,
   AvailabilityProfile,
 } from '../../types/availabilityProfile';
 
@@ -20,21 +20,12 @@ type AvailabilityProfileFormProps = {
   onSave: (profile: AvailabilityProfile) => Promise<void>;
 };
 
-const DEFAULT_PROFILE: AvailabilityProfile = {
-  work: { start: '09:00', end: '17:00' },
-  sleep: { start: '22:00', end: '06:00' },
-  breakfast: { start: '07:00', end: '07:30' },
-  lunch: { start: '13:00', end: '14:00' },
-  dinner: { start: '20:00', end: '20:30' },
-  savedAt: '',
-};
-
-const BLOCKS: { key: AvailabilityBlockKey; label: string }[] = [
-  { key: 'work', label: 'Trabajo' },
-  { key: 'sleep', label: 'Sueño' },
-  { key: 'breakfast', label: 'Desayuno' },
-  { key: 'lunch', label: 'Comida' },
-  { key: 'dinner', label: 'Cena' },
+const DEFAULT_BLOCKS: AvailabilityBlock[] = [
+  { id: 'work', label: 'Trabajo', start: '09:00', end: '17:00' },
+  { id: 'sleep', label: 'Sueño', start: '22:00', end: '06:00' },
+  { id: 'breakfast', label: 'Desayuno', start: '07:00', end: '07:30' },
+  { id: 'lunch', label: 'Comida', start: '13:00', end: '14:00' },
+  { id: 'dinner', label: 'Cena', start: '20:00', end: '20:30' },
 ];
 
 function isValidTime(value: string) {
@@ -51,45 +42,81 @@ export function AvailabilityProfileForm({
   onCancel,
   onSave,
 }: AvailabilityProfileFormProps) {
-  const [profile, setProfile] = useState<AvailabilityProfile>(
-    initialProfile ?? DEFAULT_PROFILE,
+  const [blocks, setBlocks] = useState<AvailabilityBlock[]>(
+    () => initialProfile?.blocks.map((block) => ({ ...block })) ?? DEFAULT_BLOCKS,
   );
+  const [activityName, setActivityName] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  function updateTime(
-    block: AvailabilityBlockKey,
-    edge: 'start' | 'end',
+  function updateBlock(
+    blockId: string,
+    field: 'label' | 'start' | 'end',
     value: string,
   ) {
-    const normalizedValue = value.replace(/[^\d]/g, '').slice(0, 4);
-    const formattedValue =
-      normalizedValue.length > 2
-        ? `${normalizedValue.slice(0, 2)}:${normalizedValue.slice(2)}`
-        : normalizedValue;
+    const nextValue =
+      field === 'label'
+        ? value
+        : (() => {
+            const digits = value.replace(/[^\d]/g, '').slice(0, 4);
+            return digits.length > 2
+              ? `${digits.slice(0, 2)}:${digits.slice(2)}`
+              : digits;
+          })();
 
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-      [block]: { ...currentProfile[block], [edge]: formattedValue },
-    }));
+    setBlocks((currentBlocks) =>
+      currentBlocks.map((block) =>
+        block.id === blockId ? { ...block, [field]: nextValue } : block,
+      ),
+    );
+    setError('');
+  }
+
+  function addActivity() {
+    const label = activityName.trim();
+    if (!label) {
+      setError('Escribe el nombre de la actividad que quieres agregar.');
+      return;
+    }
+
+    setBlocks((currentBlocks) => [
+      ...currentBlocks,
+      {
+        id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        label,
+        start: '18:00',
+        end: '19:00',
+      },
+    ]);
+    setActivityName('');
+    setError('');
+  }
+
+  function removeActivity(blockId: string) {
+    setBlocks((currentBlocks) => currentBlocks.filter((block) => block.id !== blockId));
     setError('');
   }
 
   async function handleSave() {
-    const hasInvalidTime = BLOCKS.some(({ key }) => {
-      const range = profile[key];
-      return !isValidTime(range.start) || !isValidTime(range.end);
-    });
+    const hasInvalidBlock = blocks.some(
+      (block) =>
+        !block.label.trim() ||
+        !isValidTime(block.start) ||
+        !isValidTime(block.end),
+    );
 
-    if (hasInvalidTime) {
-      setError('Completa cada horario con una hora válida en formato 24 h.');
+    if (hasInvalidBlock) {
+      setError('Completa cada actividad con un nombre y horas válidas en formato 24 h.');
       return;
     }
 
     setIsSaving(true);
     setError('');
     try {
-      await onSave({ ...profile, savedAt: new Date().toISOString() });
+      await onSave({
+        blocks: blocks.map((block) => ({ ...block, label: block.label.trim() })),
+        savedAt: new Date().toISOString(),
+      });
     } catch {
       setError('No se pudo guardar el horario. Inténtalo de nuevo.');
     } finally {
@@ -106,39 +133,79 @@ export function AvailabilityProfileForm({
         <Text style={styles.eyebrow}>AGENDA DIGITAL / PERFIL INICIAL</Text>
         <Text style={styles.title}>Tus bloques fijos</Text>
         <Text style={styles.description}>
-          Define tus horarios habituales. Los usaremos como límites de tu disponibilidad diaria.
+          Agrega las actividades que ocupan tu día y elimina las que no necesites. Se tomarán
+          en cuenta para organizar tus tareas.
         </Text>
 
         <View style={styles.blocks}>
-          {BLOCKS.map(({ key, label }) => (
-            <View key={key} style={styles.blockRow}>
-              <Text style={styles.blockLabel}>{label}</Text>
+          {blocks.map((block) => (
+            <View key={block.id} style={styles.blockCard}>
+              <View style={styles.blockHeading}>
+                <TextInput
+                  accessibilityLabel="Nombre de la actividad"
+                  onChangeText={(value) => updateBlock(block.id, 'label', value)}
+                  placeholder="Nombre de actividad"
+                  placeholderTextColor="#85877F"
+                  style={styles.blockLabelInput}
+                  value={block.label}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Eliminar ${block.label}`}
+                  onPress={() => removeActivity(block.id)}
+                  style={styles.removeButton}
+                >
+                  <Text style={styles.removeButtonText}>Eliminar</Text>
+                </Pressable>
+              </View>
               <View style={styles.timeRange}>
                 <TextInput
-                  accessibilityLabel={`${label}, hora de inicio`}
+                  accessibilityLabel={`${block.label}, hora de inicio`}
                   keyboardType="numbers-and-punctuation"
                   maxLength={5}
-                  onChangeText={(value) => updateTime(key, 'start', value)}
+                  onChangeText={(value) => updateBlock(block.id, 'start', value)}
                   placeholder="09:00"
                   placeholderTextColor="#85877F"
                   style={styles.timeInput}
-                  value={profile[key].start}
+                  value={block.start}
                 />
                 <Text style={styles.toLabel}>a</Text>
                 <TextInput
-                  accessibilityLabel={`${label}, hora de fin`}
+                  accessibilityLabel={`${block.label}, hora de fin`}
                   keyboardType="numbers-and-punctuation"
                   maxLength={5}
-                  onChangeText={(value) => updateTime(key, 'end', value)}
+                  onChangeText={(value) => updateBlock(block.id, 'end', value)}
                   placeholder="17:00"
                   placeholderTextColor="#85877F"
                   style={styles.timeInput}
-                  value={profile[key].end}
+                  value={block.end}
                 />
               </View>
             </View>
           ))}
         </View>
+
+        <Text style={styles.addHeading}>Agregar actividad fija</Text>
+        <View style={styles.addActivityRow}>
+          <TextInput
+            accessibilityLabel="Nombre de nueva actividad"
+            onChangeText={setActivityName}
+            onSubmitEditing={addActivity}
+            placeholder="Ej. Gimnasio"
+            placeholderTextColor="#85877F"
+            returnKeyType="done"
+            style={styles.activityInput}
+            value={activityName}
+          />
+          <Pressable
+            accessibilityRole="button"
+            onPress={addActivity}
+            style={styles.addButton}
+          >
+            <Text style={styles.addButtonText}>Agregar</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.addHint}>La nueva actividad inicia de 18:00 a 19:00; puedes cambiarlo.</Text>
 
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
 
@@ -194,20 +261,33 @@ const styles = StyleSheet.create({
     maxWidth: 420,
   },
   blocks: {
-    marginTop: 30,
+    marginTop: 20,
   },
-  blockRow: {
-    alignItems: 'center',
+  blockCard: {
     borderBottomColor: '#E2E2D9',
     borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 68,
+    paddingVertical: 12,
   },
-  blockLabel: {
+  blockHeading: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  blockLabelInput: {
     color: '#293129',
     flex: 1,
     fontSize: 16,
+    fontWeight: '600',
+    paddingVertical: 6,
+  },
+  removeButton: {
+    justifyContent: 'center',
+    minHeight: 36,
+    paddingHorizontal: 8,
+  },
+  removeButtonText: {
+    color: '#AC3F2D',
+    fontSize: 12,
     fontWeight: '600',
   },
   timeRange: {
@@ -230,6 +310,46 @@ const styles = StyleSheet.create({
     color: '#85877F',
     fontSize: 13,
     marginHorizontal: 8,
+  },
+  addHeading: {
+    color: '#293129',
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 24,
+  },
+  addActivityRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
+  activityInput: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E0E0D7',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#202820',
+    flex: 1,
+    fontSize: 15,
+    minHeight: 46,
+    paddingHorizontal: 12,
+  },
+  addButton: {
+    alignItems: 'center',
+    backgroundColor: '#E8EDE4',
+    borderRadius: 8,
+    justifyContent: 'center',
+    marginLeft: 8,
+    paddingHorizontal: 14,
+  },
+  addButtonText: {
+    color: '#35563F',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  addHint: {
+    color: '#85877F',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 7,
   },
   error: {
     color: '#AC3F2D',

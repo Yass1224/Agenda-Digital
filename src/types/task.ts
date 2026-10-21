@@ -3,4 +3,6 @@ export type Task = {
   title: string;
   durationMinutes: number;
   scheduledDate?: string;
+  startTime?: string;
+  endTime?: string;
 };
