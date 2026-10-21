@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import type { AvailabilityProfile } from '../types/availabilityProfile';
 import type { Task } from '../types/task';
+import { organizeTasks } from '../utils/daySchedule';
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -41,7 +43,16 @@ export function useTasks() {
     );
   }
 
-  return { pendingTasks, todayTasks, addTask, moveTaskToToday, toggleTaskCompleted };
+  function organizeToday(profile: AvailabilityProfile) {
+    const result = organizeTasks(todayTasks, profile);
+    const scheduledTasksById = new Map(result.tasks.map((task) => [task.id, task]));
+    setTasks((currentTasks) =>
+      currentTasks.map((task) => scheduledTasksById.get(task.id) ?? task),
+    );
+    return result.unscheduledCount;
+  }
+
+  return { pendingTasks, todayTasks, addTask, moveTaskToToday, organizeToday };
 }
 
 function getLocalDateKey(date: Date): string {
