@@ -5,15 +5,9 @@ type TaskItemProps = {
   index: number;
   task: Task;
   onMoveToToday?: (taskId: number) => void;
-  onToggleCompleted?: (taskId: number) => void;
 };
 
-export function TaskItem({
-  index,
-  task,
-  onMoveToToday,
-  onToggleCompleted,
-}: TaskItemProps) {
+export function TaskItem({ index, task, onMoveToToday }: TaskItemProps) {
   return (
     <View style={styles.taskCard}>
       <View style={styles.taskRow}>
@@ -46,8 +40,7 @@ export function TaskItem({
         </Text>
         <Text style={styles.taskDuration}>{task.durationMinutes} min</Text>
       </View>
-
-      {onMoveToToday && !task.completed ? (
+      {onMoveToToday ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Mover ${task.title} a hoy`}
@@ -84,27 +77,12 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     width: 34,
   },
-  checkbox: {
-    alignItems: 'center',
-    borderColor: '#D96543',
-    borderRadius: 6,
-    borderWidth: 2,
-    height: 20,
-    justifyContent: 'center',
+  taskMarker: {
+    backgroundColor: '#D96543',
+    borderRadius: 4,
+    height: 8,
     marginRight: 12,
-    width: 20,
-  },
-  checkboxCompleted: {
-    backgroundColor: '#35563F',
-    borderColor: '#35563F',
-  },
-  checkboxPressed: {
-    opacity: 0.7,
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    width: 8,
   },
   taskTitle: {
     color: '#293129',
@@ -112,10 +90,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     paddingVertical: 14,
-  },
-  taskTitleCompleted: {
-    color: '#92968C',
-    textDecorationLine: 'line-through',
   },
   taskDuration: {
     color: '#68756A',

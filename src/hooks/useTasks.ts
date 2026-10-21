@@ -24,23 +24,15 @@ export function useTasks() {
 
     setTasks((currentTasks) => [
       ...currentTasks,
-      { id: Date.now(), title: trimmedTitle, durationMinutes, completed: false },
+      { id: Date.now(), title: trimmedTitle, durationMinutes },
     ]);
   }
 
   function moveTaskToToday(taskId: number) {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
-        task.id === taskId ? { ...task, scheduledDate: todayDate } : task
-      )
-    );
-  }
-
-  function toggleTaskCompleted(taskId: number) {
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
+        task.id === taskId ? { ...task, scheduledDate: todayDate } : task,
+      ),
     );
   }
 

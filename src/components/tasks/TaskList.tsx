@@ -61,12 +61,7 @@ export function TaskList({
           </View>
         }
         renderItem={({ item, index }) => (
-          <TaskItem
-            index={index}
-            onMoveToToday={onMoveToToday}
-            onToggleCompleted={onToggleCompleted}
-            task={item}
-          />
+          <TaskItem index={index} onMoveToToday={onMoveToToday} task={item} />
         )}
       />
     </>
