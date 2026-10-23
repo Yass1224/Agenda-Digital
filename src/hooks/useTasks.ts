@@ -24,7 +24,7 @@ export function useTasks() {
 
     setTasks((currentTasks) => [
       ...currentTasks,
-      { id: Date.now(), title: trimmedTitle, durationMinutes },
+      { id: Date.now(), title: trimmedTitle, durationMinutes, completed: false },
     ]);
   }
 
@@ -32,6 +32,15 @@ export function useTasks() {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
         task.id === taskId ? { ...task, scheduledDate: todayDate } : task,
+      ),
+    );
+  }
+
+  // ✅ Función añadida para alternar el estado de completado de una tarea
+  function toggleTaskCompleted(taskId: number) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task,
       ),
     );
   }
