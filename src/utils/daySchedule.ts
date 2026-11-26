@@ -40,6 +40,18 @@ export function getFixedScheduleBlocks(profile: AvailabilityProfile): ScheduleBl
   });
 }
 
+export function getAvailableMinutes(tasks: Task[], profile: AvailabilityProfile): number {
+  const fixedMinutes = mergeRanges(
+    getFixedScheduleBlocks(profile).map(({ startMinute, endMinute }) => ({
+      startMinute,
+      endMinute,
+    })),
+  ).reduce((total, range) => total + range.endMinute - range.startMinute, 0);
+  const taskMinutes = tasks.reduce((total, task) => total + task.durationMinutes, 0);
+
+  return Math.max(0, 24 * 60 - fixedMinutes - taskMinutes);
+}
+
 export function organizeTasks(
   tasks: Task[],
   profile: AvailabilityProfile,

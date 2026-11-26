@@ -16,6 +16,7 @@ import { TaskList } from './src/components/tasks/TaskList';
 import { TodayAgenda } from './src/components/tasks/TodayAgenda';
 import { useAvailabilityProfile } from './src/hooks/useAvailabilityProfile';
 import { useTasks } from './src/hooks/useTasks';
+import { getAvailableMinutes } from './src/utils/daySchedule';
 
 export default function App() {
   const {
@@ -64,6 +65,8 @@ export default function App() {
     );
   }
 
+  const availableMinutes = getAvailableMinutes(todayTasks, profile);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -90,11 +93,22 @@ export default function App() {
             >
               <Text style={styles.editButtonText}>Horario</Text>
             </Pressable>
-            <View style={styles.countBadge}>
-              <Text style={styles.count}>
-                {activeScreen === 'pending' ? pendingTasks.length : todayTasks.length}
-              </Text>
-            </View>
+            {activeScreen === 'today' ? (
+              <View
+                accessible
+                accessibilityLabel={`Tiempo libre: ${formatAvailableTimeForAccessibility(availableMinutes)}`}
+                style={[styles.countBadge, styles.availabilityBadge]}
+              >
+                <Text style={styles.availabilityValue}>
+                  {formatAvailableTime(availableMinutes)}
+                </Text>
+                <Text style={styles.availabilityLabel}>LIBRES</Text>
+              </View>
+            ) : (
+              <View style={styles.countBadge}>
+                <Text style={styles.count}>{pendingTasks.length}</Text>
+              </View>
+            )}
           </View>
         </View>
         {showSavedMessage ? (
@@ -141,7 +155,6 @@ export default function App() {
               tasks={pendingTasks}
               completedTasks={completedTasks}
               onMoveToToday={moveTaskToToday}
-              onToggleCompleted={toggleTaskCompleted}
             />
           </>
         ) : (
@@ -202,6 +215,24 @@ const styles = StyleSheet.create({
     minWidth: 44,
     paddingHorizontal: 10,
   },
+  availabilityBadge: {
+    borderRadius: 12,
+    height: 48,
+    minWidth: 68,
+    paddingHorizontal: 6,
+  },
+  availabilityValue: {
+    color: '#35563F',
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '700',
+  },
+  availabilityLabel: {
+    color: '#507056',
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
   count: {
     color: '#35563F',
     fontSize: 16,
@@ -243,9 +274,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 6,
     minHeight: 40,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   editButtonText: {
     color: '#35563F',
@@ -268,3 +299,20 @@ const styles = StyleSheet.create({
     padding: 12,
   },
 });
+
+function formatAvailableTime(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours === 0) return `${remainingMinutes}m`;
+  return remainingMinutes === 0
+    ? `${hours}h`
+    : `${hours}h${String(remainingMinutes).padStart(2, '0')}m`;
+}
+
+function formatAvailableTimeForAccessibility(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours === 0) return `${remainingMinutes} minutos`;
+  if (remainingMinutes === 0) return `${hours} horas`;
+  return `${hours} horas y ${remainingMinutes} minutos`;
+}
