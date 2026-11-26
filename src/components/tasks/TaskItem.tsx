@@ -26,8 +26,7 @@ export function TaskItem({
         </Text>
         <Text style={styles.taskDuration}>{task.durationMinutes} min</Text>
       </View>
-
-      {onMoveToToday && !task.completed ? (
+      {onMoveToToday ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Mover ${task.title} a hoy`}
@@ -70,10 +69,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     paddingVertical: 14,
-  },
-  taskTitleCompleted: {
-    color: '#92968C',
-    textDecorationLine: 'line-through',
   },
   taskDuration: {
     color: '#68756A',

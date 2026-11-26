@@ -31,8 +31,8 @@ export function useTasks() {
   function moveTaskToToday(taskId: number) {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
-        task.id === taskId ? { ...task, scheduledDate: todayDate } : task
-      )
+        task.id === taskId ? { ...task, scheduledDate: todayDate } : task,
+      ),
     );
   }
 
@@ -49,8 +49,8 @@ export function useTasks() {
   function toggleTaskCompleted(taskId: number) {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
+        task.id === taskId ? { ...task, completed: !task.completed } : task,
+      ),
     );
   }
 
