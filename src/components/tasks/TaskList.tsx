@@ -6,14 +6,12 @@ type TaskListProps = {
   tasks: Task[];
   completedTasks: Task[];
   onMoveToToday: (taskId: number) => void;
-  onToggleCompleted: (taskId: number) => void;
 };
 
 export function TaskList({
   tasks,
   completedTasks,
   onMoveToToday,
-  onToggleCompleted,
 }: TaskListProps) {
   return (
     <>
@@ -53,7 +51,6 @@ export function TaskList({
                 <TaskItem
                   index={index}
                   key={task.id}
-                  onToggleCompleted={onToggleCompleted}
                   task={task}
                 />
               ))
@@ -61,7 +58,11 @@ export function TaskList({
           </View>
         }
         renderItem={({ item, index }) => (
-          <TaskItem index={index} onMoveToToday={onMoveToToday} task={item} />
+          <TaskItem
+            index={index}
+            onMoveToToday={onMoveToToday}
+            task={item}
+          />
         )}
       />
     </>
